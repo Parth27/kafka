@@ -18,12 +18,12 @@ package org.apache.kafka.clients.admin;
 
 import org.apache.kafka.clients.admin.DescribeReplicaLogDirsResult.ReplicaLogDirInfo;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.TopicPartitionReplica;
 import org.apache.kafka.common.Uuid;
@@ -31,17 +31,18 @@ import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.errors.InvalidReplicationFactorException;
+import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.errors.KafkaStorageException;
 import org.apache.kafka.common.errors.ReplicaNotAvailableException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.internals.KafkaFutureImpl;
-import org.apache.kafka.common.requests.DescribeLogDirsResponse;
 import org.apache.kafka.common.quota.ClientQuotaAlteration;
 import org.apache.kafka.common.quota.ClientQuotaFilter;
+import org.apache.kafka.common.requests.DescribeLogDirsResponse;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -69,6 +70,7 @@ public class MockAdminClient extends AdminClient {
         new HashMap<>();
     private final Map<TopicPartition, Long> beginningOffsets;
     private final Map<TopicPartition, Long> endOffsets;
+    private final boolean usingRaftController;
     private final String clusterId;
     private final List<List<String>> brokerLogDirs;
     private final List<Map<String, String>> brokerConfigs;
@@ -90,6 +92,7 @@ public class MockAdminClient extends AdminClient {
         private Node controller = null;
         private List<List<String>> brokerLogDirs = new ArrayList<>();
         private Short defaultPartitions;
+        private boolean usingRaftController = false;
         private Integer defaultReplicationFactor;
 
         public Builder() {
@@ -135,6 +138,11 @@ public class MockAdminClient extends AdminClient {
             return this;
         }
 
+        public Builder usingRaftController(boolean usingRaftController) {
+            this.usingRaftController = usingRaftController;
+            return this;
+        }
+
         public Builder defaultPartitions(short numPartitions) {
             this.defaultPartitions = numPartitions;
             return this;
@@ -146,7 +154,8 @@ public class MockAdminClient extends AdminClient {
                 clusterId,
                 defaultPartitions != null ? defaultPartitions.shortValue() : 1,
                 defaultReplicationFactor != null ? defaultReplicationFactor.shortValue() : Math.min(brokers.size(), 3),
-                brokerLogDirs);
+                brokerLogDirs,
+                usingRaftController);
         }
     }
 
@@ -156,7 +165,7 @@ public class MockAdminClient extends AdminClient {
 
     public MockAdminClient(List<Node> brokers, Node controller) {
         this(brokers, controller, DEFAULT_CLUSTER_ID, 1, brokers.size(),
-            Collections.nCopies(brokers.size(), DEFAULT_LOG_DIRS));
+            Collections.nCopies(brokers.size(), DEFAULT_LOG_DIRS), false);
     }
 
     private MockAdminClient(List<Node> brokers,
@@ -164,7 +173,8 @@ public class MockAdminClient extends AdminClient {
                             String clusterId,
                             int defaultPartitions,
                             int defaultReplicationFactor,
-                            List<List<String>> brokerLogDirs) {
+                            List<List<String>> brokerLogDirs,
+                            boolean usingRaftController) {
         this.brokers = brokers;
         controller(controller);
         this.clusterId = clusterId;
@@ -177,6 +187,7 @@ public class MockAdminClient extends AdminClient {
         }
         this.beginningOffsets = new HashMap<>();
         this.endOffsets = new HashMap<>();
+        this.usingRaftController = usingRaftController;
     }
 
     synchronized public void controller(Node controller) {
@@ -499,12 +510,6 @@ public class MockAdminClient extends AdminClient {
 
     @Override
     synchronized public DeleteConsumerGroupOffsetsResult deleteConsumerGroupOffsets(String groupId, Set<TopicPartition> partitions, DeleteConsumerGroupOffsetsOptions options) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    @Deprecated
-    @Override
-    synchronized public ElectPreferredLeadersResult electPreferredLeaders(Collection<TopicPartition> partitions, ElectPreferredLeadersOptions options) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
@@ -888,7 +893,18 @@ public class MockAdminClient extends AdminClient {
     }
 
     @Override
-    public DecommissionBrokerResult decommissionBroker(int brokerId, DecommissionBrokerOptions options) {
+    public UnregisterBrokerResult unregisterBroker(int brokerId, UnregisterBrokerOptions options) {
+        if (usingRaftController) {
+            return new UnregisterBrokerResult(KafkaFuture.completedFuture(null));
+        } else {
+            KafkaFutureImpl<Void> future = new KafkaFutureImpl<>();
+            future.completeExceptionally(new UnsupportedVersionException(""));
+            return new UnregisterBrokerResult(future);
+        }
+    }
+
+    @Override
+    public DescribeProducersResult describeProducers(Collection<TopicPartition> partitions, DescribeProducersOptions options) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 

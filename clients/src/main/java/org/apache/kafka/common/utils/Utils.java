@@ -1334,4 +1334,20 @@ public final class Utils {
     public static <S> Iterator<S> covariantCast(Iterator<? extends S> iterator) {
         return (Iterator<S>) iterator;
     }
+
+    /**
+     * Checks if a string is null, empty or whitespace only.
+     * @param str a string to be checked
+     * @return true if the string is null, empty or whitespace only; otherwise, return false.
+     */    
+    public static boolean isBlank(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+    public static <K, V> Map<K, V> initializeMap(Collection<K> keys, Supplier<V> valueSupplier) {
+        Map<K, V> res = new HashMap<>(keys.size());
+        keys.forEach(key -> res.put(key, valueSupplier.get()));
+        return res;
+    }
+
 }
