@@ -41,4 +41,8 @@ case $COMMAND in
     ;;
 esac
 
-exec $base_dir/kafka-run-class.sh $EXTRA_ARGS kafka.Kafka "$@"
+exec $base_dir/kafka-run-class.sh $EXTRA_ARGS kafka.Kafka "$@" &
+
+# Launch Monitor Kafka Client
+# java -cp ../scaling/classes autoscale.client.MonitorKafkaClient
+java -cp lib/sigar.jar:scaling/classes autoscale.client.MonitorKafkaClient
