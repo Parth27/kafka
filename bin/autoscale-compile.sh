@@ -1,1 +1,1 @@
-javac -cp lib/sigar.jar -d autoscale/classes autoscale/src/autoscale/client/AutoScaleClient.java
+javac -cp lib/sigar.jar -d autoscale/classes autoscale/src/com/autoscale/client/AutoScaleClient.java
