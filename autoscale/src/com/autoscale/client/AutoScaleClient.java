@@ -1,4 +1,4 @@
-package autoscale.client;
+package com.autoscale.client;
 
 import java.net.Socket;
 import java.net.InetAddress;
@@ -15,10 +15,10 @@ import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.Mem;
 import org.hyperic.sigar.SigarException;
 
-public class MonitorKafkaClient extends TimerTask {
+public class AutoScaleClient extends TimerTask {
     static final long FREQUENCY = 5;
     static final int PORT = 1234;
-    static final byte[] ipAddress = new byte[] {71,69,151,14};
+    static final String IPADDRESS = "71.69.151.14";
     File disk;
     Sigar sigar;
     Mem memory;
@@ -27,10 +27,10 @@ public class MonitorKafkaClient extends TimerTask {
     DataInputStream dis;
     DataOutputStream dos;
 
-    public MonitorKafkaClient() throws SigarException, IOException {
+    public AutoScaleClient() throws SigarException, IOException {
         this.sigar = new Sigar();
         this.memory = sigar.getMem();
-        ip = InetAddress.getByAddress(ipAddress);
+        ip = InetAddress.getByName(IPADDRESS);
         disk = new File("/");
         socket = new Socket(ip,PORT);
         dis = new DataInputStream(socket.getInputStream());
@@ -56,7 +56,7 @@ public class MonitorKafkaClient extends TimerTask {
     public static void main(String[] args) throws SigarException, IOException {
         System.out.println("Started Kafka Monitor Client");
         Timer timer = new Timer();
-        MonitorKafkaClient monitor = new MonitorKafkaClient();
-        timer.schedule(monitor, 0, FREQUENCY*1000);
+        AutoScaleClient scale = new AutoScaleClient();
+        timer.schedule(scale, 0, FREQUENCY*1000);
     }
 }

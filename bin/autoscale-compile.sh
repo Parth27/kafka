@@ -1,1 +1,1 @@
-javac -cp lib/sigar.jar -d scaling/classes scaling/src/autoscale/client/MonitorKafkaClient.java
+javac -cp lib/sigar.jar -d autoscale/classes autoscale/src/autoscale/client/AutoScaleClient.java
